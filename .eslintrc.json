@@ -1,0 +1,24 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:vue/vue3-recommended",
+    "plugin:vuetify/base",
+    "@vue/typescript/recommended",
+    "plugin:prettier/recommended"
+  ],
+  "parserOptions": {
+    "parser": "@typescript-eslint/parser"
+  },
+  "rules": {
+    // disabled
+    "@typescript-eslint/no-explicit-any": "off",
+    "vue/multi-word-component-names": "off"
+  },
+  "ignorePatterns": []
+}

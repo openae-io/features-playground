@@ -18,7 +18,7 @@ import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 const props = defineProps({
-  modeValue: String,
+  modeValue: { type: String, default: "" },
 });
 
 const emit = defineEmits(["update:modelValue"]);

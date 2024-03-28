@@ -2,27 +2,35 @@
   <div style="padding: 8px">
     <Plot :options="plotOptionsSignal" :data="plotDataSignal" />
     <Plot :options="plotOptionsFeature" :data="plotDataFeature" />
-    <table class="settings">
-      <tr>
-        <td>Samples</td>
-        <td><input v-model.number="samples" /></td>
-      </tr>
-      <tr>
-        <td>Block size</td>
-        <td><input v-model.number="blocksize" /></td>
-      </tr>
-      <tr>
-        <td>Step size</td>
-        <td><input v-model.number="stepsize" /></td>
-      </tr>
-    </table>
-    <button class="run-button" @click="run">Compute</button>
+
+    <v-form class="my-4">
+      <v-text-field
+        v-model.number="blocksize"
+        type="number"
+        min="0"
+        :max="samples"
+        label="Block size"
+        hide-details
+      />
+      <v-text-field
+        v-model.number="overlap"
+        type="number"
+        min="0"
+        max="95"
+        label="Overlap [%]"
+        :suffix="`${Math.round(blocksize * (overlap / 100))} samples`"
+      />
+      <v-btn prepend-icon="mdi-cog" color="primary" variant="flat" block @click="run">
+        Compute
+      </v-btn>
+    </v-form>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
+import { clamp } from "lodash";
 import type { PyodideInterface } from "pyodide";
 import uPlot from "uplot";
 import "splitpanes/dist/splitpanes.css";
@@ -30,17 +38,18 @@ import Plot from "./Plot.vue";
 import hitSignal from "../signals/hit.json";
 
 const props = defineProps<{
-  code: string
-}>()
+  code: string;
+}>();
 
-// @ts-ignore
+// @ts-expect-error: module loaded in HTML file from CDN
 const pyodide: PyodideInterface = await loadPyodide();
 await pyodide.loadPackage("numpy");
 // pre-import numpy library for faster code execution afterwards
 await pyodide.runPythonAsync("import numpy");
 
-const blocksize = ref(128);
-const stepsize = ref(64);
+const blocksize = ref(256);
+const overlap = ref(50);
+const stepsize = computed(() => blocksize.value * (1 - clamp(overlap.value / 100, 0, 1)));
 const signal = computed<Float32Array>(() => new Float32Array(hitSignal));
 const samples = computed(() => signal.value.length);
 
@@ -132,35 +141,11 @@ const plotOptionsFeature = computed<uPlot.Options>(() => ({
 const plotDataSignal = computed<uPlot.AlignedData>(() => [time.value, signal.value]);
 const plotDataFeature = ref<uPlot.AlignedData>([]);
 
-// JS module execution
-// const run = async () => {
-//   console.log("Run JS code");
-//   const dataUri = `data:text/javascript;charset=utf-8,${encodeURIComponent(code.value)}`;
-//   const namespaceObject = await import(dataUri /* @vite-ignore */);
-
-//   const func = namespaceObject.default;
-//   if (typeof func !== "function") {
-//     alert("Default export must be a function");
-//     return;
-//   }
-
-//   try {
-//     feature.value = blocks.value.map((block) => {
-//       return func(block);
-//     });
-//     plotDataFeature.value = [timeFeature.value, feature.value];
-//   } catch (e) {
-//     console.error(e);
-//     alert(e);
-//   }
-// };
-
-// Python
 const run = async () => {
-  console.log("Run Python code")
+  console.log("Run Python code");
   const namespace = pyodide.globals.get("dict")();
   const getFunction = () => {
-    for (let name of namespace) {
+    for (const name of namespace) {
       const proxy = namespace.get(name);
       if (proxy instanceof pyodide.ffi.PyCallable && !name.startsWith("_")) {
         return proxy;
@@ -197,9 +182,8 @@ const run = async () => {
             for name, param in signature(func).parameters.items()
         }
     `,
-    { globals: namespace }
+    { globals: namespace },
   );
-
 
   const inspectFunction = namespace.get("inspect_function");
   const asArray = namespace.get("asarray");
@@ -214,7 +198,7 @@ const run = async () => {
     console.error(e);
     alert(e);
   }
-}
+};
 
 watchDebounced(() => props.code, run, { debounce: 1000, immediate: true });
 </script>
