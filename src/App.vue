@@ -29,7 +29,7 @@
     <v-main>
       <splitpanes class="default-theme">
         <pane min-size="10">
-          <CodeEditor v-model="code" />
+          <CodeEditor v-model="code" :style="{ height: '100%' }" />
         </pane>
         <pane min-size="10">
           <Suspense>

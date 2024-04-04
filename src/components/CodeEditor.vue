@@ -1,8 +1,8 @@
 <template>
   <codemirror
     v-model="code"
+    v-bind="$attrs"
     placeholder="Code..."
-    :style="style"
     :autofocus="true"
     :indent-with-tab="true"
     :tab-size="4"
@@ -31,10 +31,6 @@ const code = computed<string>({
     emit("update:modelValue", newValue);
   },
 });
-
-const style = {
-  height: "100%",
-};
 
 const extensions = [python(), oneDark];
 
