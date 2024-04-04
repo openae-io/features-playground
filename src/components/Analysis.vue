@@ -31,21 +31,15 @@
 import { computed, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
 import { clamp } from "lodash";
-import type { PyodideInterface } from "pyodide";
 import uPlot from "uplot";
 import "splitpanes/dist/splitpanes.css";
+import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
 import hitSignal from "../signals/hit.json";
 
 const props = defineProps<{
   code: string;
 }>();
-
-// @ts-expect-error: module loaded in HTML file from CDN
-const pyodide: PyodideInterface = await loadPyodide();
-await pyodide.loadPackage("numpy");
-// pre-import numpy library for faster code execution afterwards
-await pyodide.runPythonAsync("import numpy");
 
 const blocksize = ref(256);
 const overlap = ref(50);
@@ -141,13 +135,17 @@ const plotOptionsFeature = computed<uPlot.Options>(() => ({
 const plotDataSignal = computed<uPlot.AlignedData>(() => [time.value, signal.value]);
 const plotDataFeature = ref<uPlot.AlignedData>([]);
 
+const { load } = usePyodide();
+
 const run = async () => {
+  const py = await load();
+
   console.log("Run Python code");
-  const namespace = pyodide.globals.get("dict")();
+  const namespace = py.globals.get("dict")();
   const getFunction = () => {
     for (const name of namespace) {
       const proxy = namespace.get(name);
-      if (proxy instanceof pyodide.ffi.PyCallable && !name.startsWith("_")) {
+      if (proxy instanceof py.ffi.PyCallable && !name.startsWith("_")) {
         return proxy;
       }
       proxy.destroy();
@@ -155,10 +153,10 @@ const run = async () => {
     throw Error("No function found");
   };
 
-  pyodide.runPython(props.code, { globals: namespace });
+  py.runPython(props.code, { globals: namespace });
   const func = getFunction();
 
-  pyodide.runPython(
+  py.runPython(
     `
     from inspect import Parameter, signature
     from numpy import asarray

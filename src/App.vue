@@ -32,10 +32,7 @@
           <CodeEditor v-model="code" :style="{ height: '100%' }" />
         </pane>
         <pane min-size="10">
-          <Suspense>
-            <Analysis :code="code" />
-            <template #fallback>Loading...</template>
-          </Suspense>
+          <Analysis :code="code" />
         </pane>
       </splitpanes>
     </v-main>
