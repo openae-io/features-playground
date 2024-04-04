@@ -1,9 +1,6 @@
 <template>
-  <div style="padding: 8px">
-    <Plot :options="plotOptionsSignal" :data="plotDataSignal" />
-    <Plot :options="plotOptionsFeature" :data="plotDataFeature" />
-
-    <v-form class="my-4">
+  <div class="pa-4">
+    <v-form>
       <v-text-field
         v-model.number="blocksize"
         type="number"
@@ -20,17 +17,27 @@
         label="Overlap [%]"
         :suffix="`${Math.round(blocksize * (overlap / 100))} samples`"
       />
-      <v-btn prepend-icon="mdi-cog" color="primary" variant="flat" block @click="run">
+      <v-btn
+        prepend-icon="mdi-cog"
+        :disabled="computing"
+        :loading="computing"
+        color="primary"
+        variant="flat"
+        block
+        @click="compute"
+      >
         Compute
       </v-btn>
     </v-form>
+
+    <Plot :options="plotOptions" :data="plotData" class="mt-4" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
-import { clamp } from "lodash";
+import { clamp, range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
@@ -47,13 +54,7 @@ const stepsize = computed(() => blocksize.value * (1 - clamp(overlap.value / 100
 const signal = computed<Float32Array>(() => new Float32Array(hitSignal));
 const samples = computed(() => signal.value.length);
 
-const time = computed<Float32Array>(() => {
-  const arr = new Float32Array(samples.value);
-  for (let i = 0; i < samples.value; i++) {
-    arr[i] = i; // / samplerate.value;
-  }
-  return arr;
-});
+const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
 
 const blocks = computed<Float32Array[]>(() => {
   const arr = [];
@@ -67,91 +68,97 @@ const blocks = computed<Float32Array[]>(() => {
   return arr;
 });
 
-const timeFeature = computed<Float32Array>(() => {
-  const arr = new Float32Array(blocks.value.length);
+const xvaluesBlocks = computed<Int32Array>(() => {
+  const arr = new Int32Array(blocks.value.length);
   for (let i = 0; i < samples.value; i++) {
-    arr[i] = (i + 0.5) * stepsize.value; // / samplerate.value;
+    arr[i] = (i + 0.5) * stepsize.value;
   }
   return arr;
 });
 
 const feature = ref<number[]>([]);
 
-const plotScales = computed<uPlot.Scales>(() => ({
-  x: {
-    time: false,
-    // range: [0, signal.value.length],
-    min: 0,
-    max: signal.value.length,
-  },
-}));
-
-const cursorSync = uPlot.sync("cursor");
-const matchSyncKeys = (own: string | null, ext: string | null) => own === ext;
-
-const cursorOptions: uPlot.Cursor = {
-  lock: true,
-  x: true,
-  y: false,
-  sync: {
-    key: cursorSync.key,
-    setSeries: true,
-    match: [matchSyncKeys, matchSyncKeys],
-  },
-};
-
-const plotOptionsSignal: uPlot.Options = {
+const plotOptions: uPlot.Options = {
   width: 0,
-  height: 250,
-  cursor: cursorOptions,
-  scales: plotScales.value,
+  height: 400,
+  scales: {
+    x: {
+      time: false,
+    },
+    y: {},
+    z: {},
+  },
+  axes: [
+    {
+      grid: { show: true, width: 1 },
+      ticks: { width: 1 },
+      size: 30,
+    },
+    {
+      grid: { show: false },
+      ticks: { width: 1 },
+      size: 60,
+    },
+    {
+      scale: "z",
+      side: 1,
+      grid: { show: true, width: 1 },
+      ticks: { width: 1 },
+      size: 60,
+    },
+  ],
   series: [
-    {},
+    {
+      label: "Sample",
+    },
     {
       show: true,
       label: "Signal",
+      scale: "y",
       stroke: "black",
       width: 1,
+      value: (u, value) => (value === null ? "Null" : value.toPrecision(4)),
+    },
+    {
+      show: true,
+      label: "Feature",
+      scale: "z",
+      stroke: "red",
+      width: 2,
+      spanGaps: true,
+      value: (u, value) => (value === null ? "Null" : value.toPrecision(4)),
     },
   ],
 };
 
-const plotOptionsFeature = computed<uPlot.Options>(() => ({
-  width: 0,
-  height: 250,
-  cursor: cursorOptions,
-  scales: plotScales.value,
-  series: [
-    {},
-    {
-      show: true,
-      label: "Feature",
-      stroke: "red",
-      width: 1,
-    },
-  ],
-}));
-
-const plotDataSignal = computed<uPlot.AlignedData>(() => [time.value, signal.value]);
-const plotDataFeature = ref<uPlot.AlignedData>([]);
+const plotData = computed<uPlot.AlignedData>(() => {
+  return uPlot.join([
+    [xvalues.value, signal.value],
+    [xvaluesBlocks.value, feature.value],
+  ]);
+});
 
 const { load } = usePyodide();
+const computing = ref(false);
 
-async function run() {
-  const py = await load();
-  const executor = new FunctionExecutor(props.code, py);
-  console.log(executor.inspect());
-
+async function compute() {
+  console.log("compute", computing.value);
   try {
+    computing.value = true;
+    const py = await load();
+    const executor = new FunctionExecutor(props.code, py);
+    console.log(executor.inspect());
+
     feature.value = blocks.value.map((block) => {
       return executor.invoke(block, {});
     });
-    plotDataFeature.value = [timeFeature.value, feature.value];
   } catch (e) {
     console.error(e);
     alert(e);
+  } finally {
+    computing.value = false;
   }
 }
 
-watchDebounced(() => props.code, run, { debounce: 1000, immediate: true });
+watchDebounced(() => props.code, compute, { debounce: 1000, immediate: true });
 </script>
