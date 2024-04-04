@@ -60,7 +60,7 @@ const blocks = computed<Float32Array[]>(() => {
   const arr = [];
   let begin = 0;
   let end = blocksize.value;
-  while (end < samples.value) {
+  while (end <= samples.value) {
     arr.push(signal.value.subarray(begin, end));
     begin += stepsize.value;
     end += stepsize.value;
@@ -71,7 +71,7 @@ const blocks = computed<Float32Array[]>(() => {
 const xvaluesBlocks = computed<Int32Array>(() => {
   const arr = new Int32Array(blocks.value.length);
   for (let i = 0; i < samples.value; i++) {
-    arr[i] = (i + 0.5) * stepsize.value;
+    arr[i] = 0.5 * blocksize.value + i * stepsize.value;
   }
   return arr;
 });
