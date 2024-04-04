@@ -49,6 +49,7 @@ import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
 import signalsHit from "../signals/hit.json";
+import signalsSine from "../signals/sine.json";
 import signalsSweep from "../signals/sweep.json";
 import { FunctionExecutor } from "@/FunctionExecutor";
 import { watch } from "vue";
@@ -59,6 +60,7 @@ const props = defineProps<{
 
 const signals = [
   { title: "Hit", signal: signalsHit },
+  { title: "Sine with 1/100 sampling rate", signal: signalsSine },
   { title: "Sweep from 0 to 1/10 sampling rate", signal: signalsSweep },
 ];
 const signalSelection = ref(signals[0]);
