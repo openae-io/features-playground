@@ -160,5 +160,8 @@ async function compute() {
   }
 }
 
-watchDebounced(() => props.code, compute, { debounce: 1000, immediate: true });
+watchDebounced([() => props.code, signal, blocksize, overlap], compute, {
+  debounce: 1000,
+  immediate: true,
+});
 </script>
