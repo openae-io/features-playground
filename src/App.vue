@@ -53,16 +53,16 @@ const links = [
 ];
 
 const urlParams = new URLSearchParams(window.location.search);
+const codeParam = urlParams.has("code") ? atob(urlParams.get("code")!) : null;
 
 const codeExample = `
 import numpy as np
 
 def rms(signal: np.ndarray) -> float:
     return np.sqrt(np.mean(signal ** 2))
-`;
-const code = ref(
-  urlParams.has("code") ? atob(urlParams.get("code") ?? "") : codeExample.trimStart(),
-);
+`.trimStart();
+
+const code = ref(codeParam ? codeParam : codeExample);
 
 const { share } = useShare();
 function shareLink() {

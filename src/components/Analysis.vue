@@ -32,10 +32,10 @@ import { computed, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
 import { clamp } from "lodash";
 import uPlot from "uplot";
-import "splitpanes/dist/splitpanes.css";
 import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
 import hitSignal from "../signals/hit.json";
+import { FunctionExecutor } from "@/FunctionExecutor";
 
 const props = defineProps<{
   code: string;
@@ -137,66 +137,21 @@ const plotDataFeature = ref<uPlot.AlignedData>([]);
 
 const { load } = usePyodide();
 
-const run = async () => {
+async function run() {
   const py = await load();
-
-  console.log("Run Python code");
-  const namespace = py.globals.get("dict")();
-  const getFunction = () => {
-    for (const name of namespace) {
-      const proxy = namespace.get(name);
-      if (proxy instanceof py.ffi.PyCallable && !name.startsWith("_")) {
-        return proxy;
-      }
-      proxy.destroy();
-    }
-    throw Error("No function found");
-  };
-
-  py.runPython(props.code, { globals: namespace });
-  const func = getFunction();
-
-  py.runPython(
-    `
-    from inspect import Parameter, signature
-    from numpy import asarray
-
-    def inspect_function(func, empty_value = "__empty__"):
-        def convert_empty(value):
-            return value if value is not Parameter.empty else empty_value
-
-        return  {
-            name: {
-                # Parameter.kind enum:
-                # 0: POSITIONAL_ONLY
-                # 1: POSITIONAL_OR_KEYWORD
-                # 2: VAR_POSITIONAL
-                # 3: KEYWORD_ONLY
-                # 4: VAR_KEYWORD
-                "kind": int(param.kind),
-                "default": convert_empty(param.default),
-                "annotation": param.annotation.__name__,
-            }
-            for name, param in signature(func).parameters.items()
-        }
-    `,
-    { globals: namespace },
-  );
-
-  const inspectFunction = namespace.get("inspect_function");
-  const asArray = namespace.get("asarray");
-  console.log(inspectFunction(func).toJs());
+  const executor = new FunctionExecutor(props.code, py);
+  console.log(executor.inspect());
 
   try {
     feature.value = blocks.value.map((block) => {
-      return func.callKwargs(asArray(block), {});
+      return executor.invoke(block, {});
     });
     plotDataFeature.value = [timeFeature.value, feature.value];
   } catch (e) {
     console.error(e);
     alert(e);
   }
-};
+}
 
 watchDebounced(() => props.code, run, { debounce: 1000, immediate: true });
 </script>
