@@ -1,6 +1,13 @@
 <template>
   <div class="pa-4">
     <v-form>
+      <v-select
+        v-model="signalSelection"
+        :items="signals"
+        label="Signal"
+        return-object
+        hide-details
+      />
       <v-text-field
         v-model.number="blocksize"
         type="number"
@@ -41,17 +48,25 @@ import { clamp, range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
-import hitSignal from "../signals/hit.json";
+import signalsHit from "../signals/hit.json";
+import signalsSweep from "../signals/sweep.json";
 import { FunctionExecutor } from "@/FunctionExecutor";
+import { watch } from "vue";
 
 const props = defineProps<{
   code: string;
 }>();
 
+const signals = [
+  { title: "Hit", signal: signalsHit },
+  { title: "Sweep from 0 to 1/10 sampling rate", signal: signalsSweep },
+];
+const signalSelection = ref(signals[0]);
+
 const blocksize = ref(256);
 const overlap = ref(50);
 const stepsize = computed(() => blocksize.value * (1 - clamp(overlap.value / 100, 0, 1)));
-const signal = computed<Float32Array>(() => new Float32Array(hitSignal));
+const signal = computed<Float32Array>(() => new Float32Array(signalSelection.value.signal));
 const samples = computed(() => signal.value.length);
 
 const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
@@ -117,7 +132,7 @@ const plotOptions: uPlot.Options = {
       scale: "y",
       stroke: "black",
       width: 1,
-      value: (u, value) => (value === null ? "Null" : value.toPrecision(4)),
+      value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
     {
       show: true,
@@ -126,7 +141,7 @@ const plotOptions: uPlot.Options = {
       stroke: "red",
       width: 2,
       spanGaps: true,
-      value: (u, value) => (value === null ? "Null" : value.toPrecision(4)),
+      value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
   ],
 };
@@ -142,7 +157,6 @@ const { load } = usePyodide();
 const computing = ref(false);
 
 async function compute() {
-  console.log("compute", computing.value);
   try {
     computing.value = true;
     const py = await load();
@@ -160,7 +174,11 @@ async function compute() {
   }
 }
 
-watchDebounced([() => props.code, signal, blocksize, overlap], compute, {
+const watchItems = [() => props.code, signal, blocksize, overlap];
+watch(watchItems, () => {
+  feature.value = [];
+});
+watchDebounced(watchItems, compute, {
   debounce: 1000,
   immediate: true,
 });
