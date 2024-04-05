@@ -1,5 +1,8 @@
 <template>
   <div class="pa-4">
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
+      <pre style="white-space: pre-wrap">{{ error }}</pre>
+    </v-alert>
     <v-form>
       <v-select
         v-model="signalSelection"
@@ -8,28 +11,34 @@
         return-object
         hide-details
       />
-      <v-text-field
-        v-model.number="blocksize"
-        type="number"
-        min="1"
-        :max="samples"
-        label="Block size"
-        hide-details
-      />
-      <v-text-field
-        v-model.number="overlap"
-        type="number"
-        min="0"
-        max="95"
-        label="Overlap [%]"
-        :suffix="`${Math.round(blocksize * (overlap / 100))} samples`"
-      />
+      <div class="d-flex">
+        <v-text-field
+          v-model.number="blocksize"
+          type="number"
+          min="1"
+          :max="samples"
+          label="Block size"
+          suffix="samples"
+          hide-details
+        />
+        <v-text-field
+          v-model.number="overlap"
+          type="number"
+          min="0"
+          max="95"
+          label="Overlap [%]"
+          :suffix="`${Math.round(blocksize * (overlap / 100))} samples`"
+          hide-details
+        />
+      </div>
+
       <v-btn
         prepend-icon="mdi-cog"
         :disabled="computing"
         :loading="computing"
         color="primary"
         variant="flat"
+        class="my-4"
         block
         @click="compute"
       >
@@ -37,7 +46,7 @@
       </v-btn>
     </v-form>
 
-    <Plot :options="plotOptions" :data="plotData" class="mt-4" />
+    <Plot :options="plotOptions" :data="plotData" />
   </div>
 </template>
 
@@ -157,8 +166,10 @@ const plotData = computed<uPlot.AlignedData>(() => {
 
 const { load } = usePyodide();
 const computing = ref(false);
+const error = ref<string | null>(null);
 
 async function compute() {
+  error.value = null;
   try {
     computing.value = true;
     const py = await load();
@@ -169,8 +180,7 @@ async function compute() {
       return executor.invoke(block, {});
     });
   } catch (e) {
-    console.error(e);
-    alert(e);
+    error.value = String(e);
   } finally {
     computing.value = false;
   }
