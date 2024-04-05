@@ -11,7 +11,7 @@
       <v-text-field
         v-model.number="blocksize"
         type="number"
-        min="0"
+        min="1"
         :max="samples"
         label="Block size"
         hide-details
@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
-import { clamp, range } from "lodash";
+import { range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
 import Plot from "./Plot.vue";
@@ -67,13 +67,14 @@ const signalSelection = ref(signals[0]);
 
 const blocksize = ref(256);
 const overlap = ref(50);
-const stepsize = computed(() => blocksize.value * (1 - clamp(overlap.value / 100, 0, 1)));
+const stepsize = computed(() => blocksize.value * (1 - overlap.value / 100));
 const signal = computed<Float32Array>(() => new Float32Array(signalSelection.value.signal));
 const samples = computed(() => signal.value.length);
 
 const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
 
 const blocks = computed<Float32Array[]>(() => {
+  if (blocksize.value < 1 || stepsize.value < 1) return [];
   const arr = [];
   let begin = 0;
   let end = blocksize.value;
@@ -87,7 +88,7 @@ const blocks = computed<Float32Array[]>(() => {
 
 const xvaluesBlocks = computed<Int32Array>(() => {
   const arr = new Int32Array(blocks.value.length);
-  for (let i = 0; i < samples.value; i++) {
+  for (let i = 0; i < arr.length; i++) {
     arr[i] = 0.5 * blocksize.value + i * stepsize.value;
   }
   return arr;
@@ -132,7 +133,7 @@ const plotOptions: uPlot.Options = {
       show: true,
       label: "Signal",
       scale: "y",
-      stroke: "black",
+      stroke: "#2196F3",
       width: 1,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
@@ -140,8 +141,8 @@ const plotOptions: uPlot.Options = {
       show: true,
       label: "Feature",
       scale: "z",
-      stroke: "red",
-      width: 2,
+      stroke: "black",
+      width: 1,
       spanGaps: true,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
