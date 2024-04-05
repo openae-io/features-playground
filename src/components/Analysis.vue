@@ -104,6 +104,8 @@ const xvaluesBlocks = computed<Int32Array>(() => {
 
 const feature = ref<number[]>([]);
 
+const colorSignal = "#2196F3";
+const colorFeature = "black";
 const plotOptions: uPlot.Options = {
   width: 0,
   height: 400,
@@ -121,11 +123,13 @@ const plotOptions: uPlot.Options = {
       size: 30,
     },
     {
+      stroke: colorSignal,
       grid: { show: false },
       ticks: { width: 1 },
       size: 60,
     },
     {
+      stroke: colorFeature,
       scale: "z",
       side: 1,
       grid: { show: true, width: 1 },
@@ -141,7 +145,7 @@ const plotOptions: uPlot.Options = {
       show: true,
       label: "Signal",
       scale: "y",
-      stroke: "#2196F3",
+      stroke: colorSignal,
       width: 1,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
@@ -149,7 +153,7 @@ const plotOptions: uPlot.Options = {
       show: true,
       label: "Feature",
       scale: "z",
-      stroke: "black",
+      stroke: colorFeature,
       width: 1,
       spanGaps: true,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
