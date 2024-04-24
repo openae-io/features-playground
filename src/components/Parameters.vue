@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { watch } from "vue";
 import type { FunctionSignature } from "@/FunctionExecutor";
-import { difference } from "lodash";
+import { difference, isEmpty } from "lodash";
 
 type Parameters = Record<string, any>;
 
@@ -48,11 +48,20 @@ function getInputType(annotation: string) {
 const model = defineModel<Parameters>({ required: true });
 const props = defineProps<{ signature: FunctionSignature }>();
 
-function updateParameter(name: string, value: string) {
+function tryParseValue(value: string) {
   try {
-    model.value[name] = value ? JSON.parse(value) : null;
+    return value ? JSON.parse(value) : null;
   } catch {
     // ignore
+  }
+  return null;
+}
+
+function updateParameter(name: string, value: string) {
+  if (isEmpty(value)) {
+    delete model.value[name];
+  } else {
+    model.value[name] = tryParseValue(value);
   }
 }
 
