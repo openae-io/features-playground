@@ -22,7 +22,7 @@
           :type="getInputType(param.annotation)"
           density="compact"
           hide-details
-          @update:model-value="(value) => updateParameter(param.name, value)"
+          @update:model-value="(value: string) => updateParameter(param.name, value)"
         />
       </template>
     </template>
