@@ -3,6 +3,14 @@
     <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
       <pre style="white-space: pre-wrap">{{ error }}</pre>
     </v-alert>
+    <div class="mb-4">
+      <template v-if="signature">
+        <Parameters v-model="parameters" :signature="signature" />
+      </template>
+      <template v-else>
+        <p>Running Python code and load function signature...</p>
+      </template>
+    </div>
     <v-form>
       <v-select
         v-model="signalSelection"
@@ -56,8 +64,9 @@ import { watchDebounced } from "@vueuse/core";
 import { range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
+import Parameters from "./Parameters.vue";
 import Plot from "./Plot.vue";
-import { FunctionExecutor } from "@/FunctionExecutor";
+import { FunctionExecutor, FunctionSignature } from "@/FunctionExecutor";
 import { watch } from "vue";
 
 const props = defineProps<{
@@ -169,19 +178,40 @@ const plotData = computed<uPlot.AlignedData>(() => {
 });
 
 const { load } = usePyodide();
-const computing = ref(false);
+const loading = ref(false);
 const error = ref<string | null>(null);
+const executor = ref<FunctionExecutor | null>(null);
+const signature = ref<FunctionSignature | null>(null);
+const parameters = ref<Record<string, any>>({});
+async function loadCode() {
+  error.value = null;
+  loading.value = true;
+  executor.value = null;
+  signature.value = null;
+  try {
+    const py = await load();
+    executor.value = new FunctionExecutor(props.code, py);
+    signature.value = executor.value.inspect();
+  } catch (e) {
+    error.value = String(e);
+  } finally {
+    loading.value = false;
+  }
+}
 
+watchDebounced(() => props.code, loadCode, {
+  debounce: 1000,
+  immediate: true,
+});
+
+const computing = ref(false);
 async function compute() {
+  if (executor.value === null) return;
+  computing.value = true;
   error.value = null;
   try {
-    computing.value = true;
-    const py = await load();
-    const executor = new FunctionExecutor(props.code, py);
-    console.log(executor.inspect());
-
     feature.value = blocks.value.map((block) => {
-      return executor.invoke(block, {});
+      return executor.value!.invoke(block, parameters.value);
     });
   } catch (e) {
     error.value = String(e);
@@ -190,12 +220,17 @@ async function compute() {
   }
 }
 
-const watchItems = [() => props.code, signal, blocksize, overlap];
-watch(watchItems, () => {
-  feature.value = [];
-});
+const watchItems = [executor, parameters, signal, blocksize, overlap];
+watch(
+  watchItems,
+  () => {
+    feature.value = [];
+  },
+  { deep: true },
+);
 watchDebounced(watchItems, compute, {
-  debounce: 1000,
+  debounce: 250,
+  deep: true,
   immediate: true,
 });
 </script>

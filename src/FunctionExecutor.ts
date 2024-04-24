@@ -12,14 +12,14 @@ export enum ParameterKind {
   VarKeyword = 4, // **kwargs
 }
 
-interface FunctionParameter {
+export interface FunctionParameter {
   name: string;
   kind: ParameterKind;
-  default: "__empty__" | any;
-  annotation: string;
+  default: "_empty" | any;
+  annotation: "_empty" | string;
 }
 
-interface FunctionSignature {
+export interface FunctionSignature {
   name: string;
   parameters: FunctionParameter[];
 }
@@ -28,7 +28,7 @@ const helperCodePython = `
 from inspect import Parameter, signature
 from numpy import asarray
 
-def inspect_parameters(func, empty_value = "__empty__"):
+def inspect_parameters(func, empty_value = "_empty"):
     def convert_empty(value):
         return value if value is not Parameter.empty else empty_value
 

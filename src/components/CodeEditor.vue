@@ -18,14 +18,14 @@ import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 const props = defineProps({
-  modeValue: { type: String, default: "" },
+  modelValue: { type: String, default: "" },
 });
 
 const emit = defineEmits(["update:modelValue"]);
 
 const code = computed<string>({
   get() {
-    return props.modeValue ?? "";
+    return props.modelValue ?? "";
   },
   set(newValue: string) {
     emit("update:modelValue", newValue);
