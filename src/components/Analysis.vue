@@ -37,6 +37,12 @@
           hide-details
         />
       </div>
+      <v-checkbox
+        v-model="applyWindow"
+        label="Apply hanning window before FFT"
+        density="compact"
+        hide-details
+      />
 
       <v-btn
         prepend-icon="mdi-cog"
@@ -189,6 +195,7 @@ const executor = ref<FunctionExecutor | null>(null);
 const signature = ref<FunctionSignature | null>(null);
 const parameters = ref<Record<string, any>>({});
 const inputDomain = ref<InputDomain>("signal");
+const applyWindow = ref(true);
 async function loadCode() {
   error.value = null;
   loading.value = true;
@@ -217,7 +224,14 @@ async function compute() {
   error.value = null;
   try {
     feature.value = blocks.value.map((block) => {
-      return executor.value!.invoke(block, inputDomain.value, parameters.value);
+      return executor.value!.invoke(
+        block,
+        {
+          domain: inputDomain.value,
+          applyWindow: applyWindow.value,
+        },
+        parameters.value,
+      );
     });
   } catch (e) {
     error.value = String(e);
@@ -226,7 +240,7 @@ async function compute() {
   }
 }
 
-const watchItems = [executor, inputDomain, parameters, signal, blocksize, overlap];
+const watchItems = [executor, inputDomain, applyWindow, parameters, signal, blocksize, overlap];
 watch(
   watchItems,
   () => {

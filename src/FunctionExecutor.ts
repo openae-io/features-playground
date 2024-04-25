@@ -28,8 +28,9 @@ export interface FunctionSignature {
 
 const helperCodePython = `
 from inspect import Parameter, signature
+
+import numpy as np
 from numpy import asarray
-from numpy.fft import rfft
 
 def inspect_parameters(func, empty_value = "_empty"):
     def convert_empty(value):
@@ -45,11 +46,18 @@ def inspect_parameters(func, empty_value = "_empty"):
         for name, param in signature(func).parameters.items()
     ]
 
-def transform_signal(signal: np.ndarray, domain: str):
+def transform_signal(signal: np.ndarray, domain: str, apply_window: bool):
     if domain == "spectrum":
-        return rfft(signal)
+        if apply_window:
+            signal *= np.hanning(len(signal))
+        return np.fft.rfft(signal)
     return signal
 `;
+
+export interface TransformOptions {
+  domain: InputDomain;
+  applyWindow: boolean;
+}
 
 export class FunctionExecutor {
   readonly code: string;
@@ -96,13 +104,17 @@ export class FunctionExecutor {
     };
   }
 
-  private transformSignal(signal: Float32Array | number[], domain: InputDomain) {
+  private transformSignal(signal: Float32Array | number[], options: TransformOptions) {
     const transformSignalProxy = this.namespace.get("transform_signal");
     const asArrayProxy = this.namespace.get("asarray");
-    return transformSignalProxy(asArrayProxy(signal), domain);
+    return transformSignalProxy(asArrayProxy(signal), options.domain, options.applyWindow);
   }
 
-  invoke(signal: Float32Array | number[], domain: InputDomain, kwargs: Record<string, any> = {}) {
-    return this.proxy.callKwargs(this.transformSignal(signal, domain), kwargs);
+  invoke(
+    signal: Float32Array | number[],
+    options: TransformOptions,
+    kwargs: Record<string, any> = {},
+  ) {
+    return this.proxy.callKwargs(this.transformSignal(signal, options), kwargs);
   }
 }
