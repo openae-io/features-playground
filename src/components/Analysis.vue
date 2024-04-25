@@ -16,13 +16,7 @@
       </template>
     </div>
     <v-form>
-      <v-select
-        v-model="signalSelection"
-        :items="signals"
-        label="Signal"
-        return-object
-        hide-details
-      />
+      <v-select v-model="signalChoice" :items="signals" label="Signal" return-object hide-details />
       <div class="d-flex">
         <v-text-field
           v-model.number="blocksize"
@@ -63,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { watchDebounced } from "@vueuse/core";
 import { range } from "lodash";
 import uPlot from "uplot";
@@ -82,14 +76,23 @@ interface Signal {
   data: number[];
 }
 
-const signalsModules = import.meta.glob("../signals/*.json", { eager: true });
-const signals = Object.values(signalsModules).map((module: any) => module.default as Signal);
-const signalSelection = ref(signals[0]);
+const signals = ref<Signal[]>([]);
+const signalEmpty: Signal = { title: "Empty", data: [] };
+const signalChoice = ref(signalEmpty);
+onMounted(async () => {
+  const importList = import.meta.glob("../signals/*.json", { eager: false });
+  signals.value = await Promise.all(
+    Object.values(importList).map(
+      async (importFunc: any) => (await importFunc()).default as Signal,
+    ),
+  );
+  signalChoice.value = signals.value[0];
+});
 
 const blocksize = ref(256);
 const overlap = ref(50);
 const stepsize = computed(() => blocksize.value * (1 - overlap.value / 100));
-const signal = computed<Float32Array>(() => new Float32Array(signalSelection.value.data));
+const signal = computed<Float32Array>(() => new Float32Array(signalChoice.value.data));
 const samples = computed(() => signal.value.length);
 
 const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
