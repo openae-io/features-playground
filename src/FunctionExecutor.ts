@@ -3,6 +3,8 @@ import type { PyCallable, PyDict } from "pyodide/ffi";
 
 export type ErrorHandler = (message: string) => void;
 
+export type InputDomain = "signal" | "spectrum";
+
 // https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
 export enum ParameterKind {
   PositionalOnly = 0,
@@ -27,6 +29,7 @@ export interface FunctionSignature {
 const helperCodePython = `
 from inspect import Parameter, signature
 from numpy import asarray
+from numpy.fft import rfft
 
 def inspect_parameters(func, empty_value = "_empty"):
     def convert_empty(value):
@@ -41,6 +44,11 @@ def inspect_parameters(func, empty_value = "_empty"):
         }
         for name, param in signature(func).parameters.items()
     ]
+
+def transform_signal(signal: np.ndarray, domain: str):
+    if domain == "spectrum":
+        return rfft(signal)
+    return signal
 `;
 
 export class FunctionExecutor {
@@ -88,8 +96,13 @@ export class FunctionExecutor {
     };
   }
 
-  invoke(signal: Float32Array | number[], kwargs: Record<string, any> = {}) {
+  private transformSignal(signal: Float32Array | number[], domain: InputDomain) {
+    const transformSignalProxy = this.namespace.get("transform_signal");
     const asArrayProxy = this.namespace.get("asarray");
-    return this.proxy.callKwargs(asArrayProxy(signal), kwargs);
+    return transformSignalProxy(asArrayProxy(signal), domain);
+  }
+
+  invoke(signal: Float32Array | number[], domain: InputDomain, kwargs: Record<string, any> = {}) {
+    return this.proxy.callKwargs(this.transformSignal(signal, domain), kwargs);
   }
 }

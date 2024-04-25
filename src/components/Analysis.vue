@@ -5,7 +5,11 @@
     </v-alert>
     <div class="mb-4">
       <template v-if="signature">
-        <Parameters v-model="parameters" :signature="signature" />
+        <Parameters
+          v-model:parameters="parameters"
+          v-model:input-domain="inputDomain"
+          :signature="signature"
+        />
       </template>
       <template v-else>
         <p>Running Python code and load function signature...</p>
@@ -66,7 +70,7 @@ import uPlot from "uplot";
 import { usePyodide } from "../composables/usePyodide";
 import Parameters from "./Parameters.vue";
 import Plot from "./Plot.vue";
-import { FunctionExecutor, FunctionSignature } from "@/FunctionExecutor";
+import { FunctionExecutor, FunctionSignature, InputDomain } from "@/FunctionExecutor";
 import { watch } from "vue";
 
 const props = defineProps<{
@@ -183,6 +187,7 @@ const error = ref<string | null>(null);
 const executor = ref<FunctionExecutor | null>(null);
 const signature = ref<FunctionSignature | null>(null);
 const parameters = ref<Record<string, any>>({});
+const inputDomain = ref<InputDomain>("signal");
 async function loadCode() {
   error.value = null;
   loading.value = true;
@@ -211,7 +216,7 @@ async function compute() {
   error.value = null;
   try {
     feature.value = blocks.value.map((block) => {
-      return executor.value!.invoke(block, parameters.value);
+      return executor.value!.invoke(block, inputDomain.value, parameters.value);
     });
   } catch (e) {
     error.value = String(e);
@@ -220,7 +225,7 @@ async function compute() {
   }
 }
 
-const watchItems = [executor, parameters, signal, blocksize, overlap];
+const watchItems = [executor, inputDomain, parameters, signal, blocksize, overlap];
 watch(
   watchItems,
   () => {
