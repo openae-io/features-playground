@@ -6,6 +6,7 @@ import numpy as np
 
 HERE = Path(__file__).parent
 
+
 @dataclass
 class Signal:
     title: str
@@ -36,5 +37,13 @@ def gen_sweep():
     return Signal(title="Sine sweep from 0 to with 1/10 sampling rate", data=y)
 
 
+def gen_noise():
+    N = 10000
+    gen = np.random.default_rng(seed=0)
+    y = gen.normal(0, 1, N)
+    return Signal(title="White noise (σ = 1)", data=y)
+
+
 save_signal_to_file(gen_sine(), "sine.json")
 save_signal_to_file(gen_sweep(), "sweep.json")
+save_signal_to_file(gen_noise(), "white_noise.json")
