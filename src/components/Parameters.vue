@@ -1,46 +1,50 @@
 <template>
-  <div class="d-grid parameter-grid">
-    <!-- title row -->
-    <div class="grid-title">Parameter</div>
-    <div class="grid-title">Type</div>
-    <div class="grid-title">Value</div>
-    <!-- end title row -->
-    <template v-for="(param, index) in signature.parameters" :key="`param-${index}`">
-      <div>
-        <code>{{ param.name }}</code>
-      </div>
-      <div>
-        <code>{{ param.annotation }}</code>
-      </div>
-      <template v-if="index === 0">
-        <div>
-          Based on the name of the first parameter, following data is passed to the function:
-          <v-radio-group v-model="inputDomain" density="compact" mandatory hide-details>
-            <v-radio value="signal">
-              <template #label>
-                <div><code>signal</code>: Time-domain data</div>
-              </template>
-            </v-radio>
-            <v-radio value="spectrum">
-              <template #label>
-                <div><code>spectrum</code>: Complex result of FFT</div>
-              </template>
-            </v-radio>
-          </v-radio-group>
-        </div>
-      </template>
-      <template v-else>
-        <v-text-field
-          :model-value="parameters[param.name]"
-          :disabled="index == 0"
-          :type="getInputType(param.annotation)"
-          density="compact"
-          hide-details
-          @update:model-value="(value: string) => updateParameter(param.name, value)"
-        />
-      </template>
-    </template>
-  </div>
+  <table class="w-100">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="(param, index) in signature.parameters" :key="`param-${index}`">
+        <td>
+          <code>{{ param.name }}</code>
+        </td>
+        <td>
+          <code>{{ param.annotation }}</code>
+        </td>
+        <td>
+          <template v-if="index === 0">
+            <div>
+              Based on the name of the first parameter, following data is passed to the function:
+              <v-radio-group v-model="inputDomain" density="compact" mandatory hide-details>
+                <v-radio v-for="obj in inputDomainChoices" :key="obj.name" :value="obj.name">
+                  <template #label>
+                    <div>
+                      <strong class="text-primary">{{ obj.name }}</strong>
+                      {{ obj.description }}
+                    </div>
+                  </template>
+                </v-radio>
+              </v-radio-group>
+            </div>
+          </template>
+          <template v-else>
+            <v-text-field
+              :model-value="parameters[param.name]"
+              :disabled="index == 0"
+              :type="getInputType(param.annotation)"
+              density="compact"
+              hide-details
+              @update:model-value="(value: string) => updateParameter(param.name, value)"
+            />
+          </template>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </template>
 
 <script setup lang="ts">
@@ -49,6 +53,11 @@ import type { FunctionSignature, InputDomain } from "@/FunctionExecutor";
 import { difference, isEmpty } from "lodash";
 
 type Parameters = Record<string, any>;
+
+const inputDomainChoices = [
+  { name: "signal", description: "Time-domain data" },
+  { name: "spectrum", description: "Complex result of FFT" },
+];
 
 const props = defineProps<{ signature: FunctionSignature }>();
 const parameters = defineModel<Parameters>("parameters", { required: true });
@@ -109,15 +118,18 @@ watch(
 </script>
 
 <style scoped>
-.parameter-grid {
-  display: grid;
-  grid-template-columns: max-content max-content auto;
-  row-gap: 8px;
-  column-gap: 16px;
-  align-items: center;
+table {
+  border: 0;
+  border-collapse: collapse;
+  padding: 0px;
+  margin: 0px;
 }
 
-.grid-title {
-  font-weight: bold;
+th,
+td {
+  border: 0;
+  padding-left: 0px;
+  padding-right: 16px;
+  text-align: left;
 }
 </style>

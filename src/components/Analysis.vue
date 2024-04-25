@@ -77,14 +77,12 @@ interface Signal {
 }
 
 const signals = ref<Signal[]>([]);
-const signalEmpty: Signal = { title: "Empty", data: [] };
-const signalChoice = ref(signalEmpty);
+const signalChoice = ref<Signal>({ title: "Empty", data: [] });
 onMounted(async () => {
   const importList = import.meta.glob("../signals/*.json", { eager: false });
+  const importFuncs = Object.values(importList);
   signals.value = await Promise.all(
-    Object.values(importList).map(
-      async (importFunc: any) => (await importFunc()).default as Signal,
-    ),
+    importFuncs.map(async (importFunc: any) => (await importFunc()).default as Signal),
   );
   signalChoice.value = signals.value[0];
 });
