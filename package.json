@@ -9,7 +9,8 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "format": "prettier --write --ignore-path .gitignore src/"
+    "format": "prettier --write --ignore-path .gitignore src/",
+    "all": "run-s --print-label build lint"
   },
   "dependencies": {
     "@codemirror/lang-python": "^6.1.5",
