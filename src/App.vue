@@ -40,8 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useShare } from "@vueuse/core";
+import { useLocalStorage, useShare } from "@vueuse/core";
 import { Splitpanes, Pane } from "splitpanes";
 import "splitpanes/dist/splitpanes.css";
 import CodeEditor from "./components/CodeEditor.vue";
@@ -52,9 +51,6 @@ const links = [
   { title: "GitHub", icon: "mdi-github", href: "https://github.com/openae-io" },
 ];
 
-const urlParams = new URLSearchParams(window.location.search);
-const codeParam = urlParams.has("code") ? atob(urlParams.get("code")!) : null;
-
 const codeExample = `
 import numpy as np
 
@@ -62,7 +58,12 @@ def rms(signal: np.ndarray) -> float:
     return np.sqrt(np.mean(signal ** 2))
 `.trimStart();
 
-const code = ref(codeParam ? codeParam : codeExample);
+const code = useLocalStorage("code", codeExample);
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has("code")) {
+  code.value = atob(urlParams.get("code")!);
+}
 
 const { share } = useShare();
 function shareLink() {
