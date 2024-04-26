@@ -1,20 +1,26 @@
 <template>
-  <div class="pa-4">
-    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-4">
+  <div class="d-flex flex-column ga-4 pa-4">
+    <div v-if="loadingPyodide">
+      Loading Python
+      <v-progress-linear color="primary" indeterminate />
+    </div>
+    <div v-if="loadingCode">
+      Running Python code and inspecting function signature
+      <v-progress-linear color="primary" indeterminate />
+    </div>
+
+    <v-alert v-if="error" type="error" variant="tonal" density="compact">
       <pre style="white-space: pre-wrap">{{ error }}</pre>
     </v-alert>
-    <div class="mb-4">
-      <template v-if="signature">
-        <Parameters
-          v-model:parameters="parameters"
-          v-model:input-domain="inputDomain"
-          :signature="signature"
-        />
-      </template>
-      <template v-else>
-        <p>Running Python code and load function signature...</p>
-      </template>
+
+    <div v-if="signature" class="mb-4">
+      <Parameters
+        v-model:parameters="parameters"
+        v-model:input-domain="inputDomain"
+        :signature="signature"
+      />
     </div>
+
     <v-form>
       <v-select v-model="signalChoice" :items="signals" label="Signal" return-object hide-details />
       <div class="d-flex">
@@ -188,8 +194,8 @@ const plotData = computed<uPlot.AlignedData>(() => {
   ]);
 });
 
-const { load } = usePyodide();
-const loading = ref(false);
+const { load: loadPyodide, loading: loadingPyodide } = usePyodide();
+const loadingCode = ref(false);
 const error = ref<string | null>(null);
 const executor = ref<FunctionExecutor | null>(null);
 const signature = ref<FunctionSignature | null>(null);
@@ -198,17 +204,17 @@ const inputDomain = ref<InputDomain>("signal");
 const applyWindow = ref(true);
 async function loadCode() {
   error.value = null;
-  loading.value = true;
   executor.value = null;
   signature.value = null;
   try {
-    const py = await load();
+    const py = await loadPyodide();
+    loadingCode.value = true;
     executor.value = new FunctionExecutor(props.code, py);
     signature.value = executor.value.inspect();
   } catch (e) {
     error.value = String(e);
   } finally {
-    loading.value = false;
+    loadingCode.value = false;
   }
 }
 
