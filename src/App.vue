@@ -28,10 +28,10 @@
     </v-app-bar>
     <v-main>
       <splitpanes class="default-theme">
-        <pane min-size="10">
+        <pane min-size="10" class="scroll">
           <CodeEditor v-model="code" :style="{ height: '100%' }" />
         </pane>
-        <pane min-size="10">
+        <pane min-size="10" class="scroll">
           <Analysis :code="code" />
         </pane>
       </splitpanes>
@@ -72,7 +72,15 @@ function shareLink() {
 </script>
 
 <style scoped>
+.v-main {
+  height: 100vh !important;
+}
+
 .splitpanes__pane {
   background-color: inherit !important;
+}
+
+.scroll {
+  overflow: auto;
 }
 </style>
