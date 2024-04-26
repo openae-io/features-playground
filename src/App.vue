@@ -45,18 +45,7 @@ import { Splitpanes, Pane } from "splitpanes";
 import "splitpanes/dist/splitpanes.css";
 import CodeEditor from "./components/CodeEditor.vue";
 import Analysis from "./components/Analysis.vue";
-
-const links = [
-  { title: "OpenAE", icon: "mdi-launch", href: "https://openae.io" },
-  { title: "GitHub", icon: "mdi-github", href: "https://github.com/openae-io" },
-];
-
-const codeExample = `
-import numpy as np
-
-def rms(signal: np.ndarray) -> float:
-    return np.sqrt(np.mean(signal ** 2))
-`.trimStart();
+import codeExample from "./example.py?raw";
 
 const code = useLocalStorage("code", codeExample);
 
@@ -64,6 +53,11 @@ const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has("code")) {
   code.value = atob(urlParams.get("code")!);
 }
+
+const links = [
+  { title: "OpenAE", icon: "mdi-launch", href: "https://openae.io" },
+  { title: "GitHub", icon: "mdi-github", href: "https://github.com/openae-io" },
+];
 
 const { share } = useShare();
 function shareLink() {
