@@ -23,9 +23,17 @@
 
     <v-form>
       <v-select v-model="signalChoice" :items="signals" label="Signal" return-object hide-details />
-      <div class="d-flex">
+      <v-select
+        v-model="processing"
+        :items="processingChoices"
+        label="Processing"
+        return-objects
+        hide-details
+      />
+
+      <div v-if="blockwise" class="d-flex">
         <v-text-field
-          v-model.number="blocksize"
+          v-model.number="blocksizeBlockwise"
           type="number"
           min="1"
           :max="samples"
@@ -39,7 +47,7 @@
           min="0"
           max="95"
           label="Overlap [%]"
-          :suffix="`${Math.round(blocksize * (overlap / 100))} samples`"
+          :suffix="`${Math.round(blocksizeBlockwise * (overlap / 100))} samples`"
           hide-details
         />
       </div>
@@ -99,11 +107,22 @@ onMounted(async () => {
   signalChoice.value = signals.value[0];
 });
 
-const blocksize = ref(256);
-const overlap = ref(50);
-const stepsize = computed(() => blocksize.value * (1 - overlap.value / 100));
 const signal = computed<Float32Array>(() => new Float32Array(signalChoice.value.data));
 const samples = computed(() => signal.value.length);
+
+type Processing = "full" | "blockwise";
+
+const processingChoices = [
+  { title: "Full signal", value: "full" },
+  { title: "Block-wise", value: "blockwise" },
+];
+const processing = ref<Processing>("blockwise");
+const blockwise = computed(() => processing.value === "blockwise");
+
+const blocksizeBlockwise = ref(256);
+const blocksize = computed(() => (blockwise.value ? blocksizeBlockwise.value : samples.value));
+const overlap = ref(50);
+const stepsize = computed(() => blocksize.value * (1 - overlap.value / 100));
 
 const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
 
@@ -181,6 +200,7 @@ const plotOptions: uPlot.Options = {
       scale: "z",
       stroke: colorFeature,
       width: 1,
+      points: { show: true, size: 6 },
       spanGaps: true,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
