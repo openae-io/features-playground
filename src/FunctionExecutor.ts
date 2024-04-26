@@ -1,9 +1,6 @@
 import { PyodideInterface } from "pyodide";
 import type { PyCallable, PyDict } from "pyodide/ffi";
-
-export type ErrorHandler = (message: string) => void;
-
-export type InputDomain = "signal" | "spectrum";
+import codeHelper from "./helper.py?raw";
 
 // https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
 export enum ParameterKind {
@@ -26,34 +23,7 @@ export interface FunctionSignature {
   parameters: FunctionParameter[];
 }
 
-const helperCodePython = `
-from inspect import Parameter, signature
-
-import numpy as np
-from numpy import asarray
-
-def inspect_parameters(func, empty_value = "_empty"):
-    def convert_empty(value):
-        return value if value is not Parameter.empty else empty_value
-
-    return [
-        {
-            "name": name,
-            "kind": int(param.kind),
-            "default": convert_empty(param.default),
-            "annotation": param.annotation.__name__,
-        }
-        for name, param in signature(func).parameters.items()
-    ]
-
-def transform_signal(signal: np.ndarray, domain: str, apply_window: bool):
-    if domain == "spectrum":
-        if apply_window:
-            signal *= np.hanning(len(signal))
-        return np.fft.rfft(signal)
-    return signal
-`;
-
+export type InputDomain = "signal" | "spectrum";
 export interface TransformOptions {
   domain: InputDomain;
   applyWindow: boolean;
@@ -83,7 +53,7 @@ export class FunctionExecutor {
     };
     this.proxy = getProxy();
 
-    this.runPython(helperCodePython);
+    this.runPython(codeHelper);
   }
 
   private runPython(code: string) {
