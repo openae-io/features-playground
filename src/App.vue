@@ -71,9 +71,15 @@ function shareLink() {
 }
 </script>
 
+<style>
+html {
+  overflow-y: auto !important;
+}
+</style>
+
 <style scoped>
 .v-main {
-  height: 100vh !important;
+  height: 100vh;
 }
 
 .splitpanes__pane {
