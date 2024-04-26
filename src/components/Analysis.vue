@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column ga-4 pa-4">
+  <div class="d-flex flex-column ga-2 pa-4">
     <div v-if="loadingPyodide">
       Loading Python
       <v-progress-linear color="primary" indeterminate />
@@ -13,7 +13,7 @@
       <pre style="white-space: pre-wrap">{{ error }}</pre>
     </v-alert>
 
-    <div v-if="signature" class="mb-4">
+    <div v-if="signature">
       <Parameters
         v-model:parameters="parameters"
         v-model:input-domain="inputDomain"
@@ -22,18 +22,25 @@
     </div>
 
     <v-form>
-      <v-select v-model="signalChoice" :items="signals" label="Signal" return-object hide-details />
-      <v-select
-        v-model="processing"
-        :items="processingChoices"
-        label="Processing"
-        return-objects
-        hide-details
-      />
-
-      <div v-if="blockwise" class="d-flex">
+      <div class="d-flex flex-wrap ga-2 mt-2">
+        <v-select
+          v-model="signalChoice"
+          :items="signals"
+          label="Signal"
+          class="w-100"
+          return-object
+          hide-details
+        />
+        <v-select
+          v-model="processing"
+          :items="processingChoices"
+          label="Processing"
+          return-objects
+          hide-details
+        />
         <v-text-field
           v-model.number="blocksizeBlockwise"
+          :disabled="!blockwise"
           type="number"
           min="1"
           :max="samples"
@@ -43,6 +50,7 @@
         />
         <v-text-field
           v-model.number="overlap"
+          :disabled="!blockwise"
           type="number"
           min="0"
           max="95"
@@ -51,28 +59,28 @@
           hide-details
         />
       </div>
+
       <v-checkbox
         v-model="applyWindow"
         label="Apply hanning window before FFT"
         density="compact"
         hide-details
       />
-
-      <v-btn
-        prepend-icon="mdi-cog"
-        :disabled="computing"
-        :loading="computing"
-        color="primary"
-        variant="flat"
-        class="my-4"
-        block
-        @click="compute"
-      >
-        Compute
-      </v-btn>
     </v-form>
 
-    <Plot :options="plotOptions" :data="plotData" />
+    <v-tabs v-model="tabOutput" color="primary" mandatory>
+      <v-tab>Plot</v-tab>
+      <v-tab>Table</v-tab>
+    </v-tabs>
+
+    <v-window v-model="tabOutput">
+      <v-window-item>
+        <Plot :options="plotOptions" :data="plotData" />
+      </v-window-item>
+      <v-window-item>
+        <v-data-table :headers="tableHeaders" :items="tableData" density="compact" />
+      </v-window-item>
+    </v-window>
   </div>
 </template>
 
@@ -207,12 +215,25 @@ const plotOptions: uPlot.Options = {
   ],
 };
 
+const tabOutput = ref(0);
+
 const plotData = computed<uPlot.AlignedData>(() => {
   return uPlot.join([
     [xvalues.value, signal.value],
     [xvaluesBlocks.value, feature.value],
   ]);
 });
+
+const tableHeaders = [
+  { key: "start", title: "Sample start" },
+  { key: "value", title: "Feature value" },
+];
+const tableData = computed(() =>
+  feature.value.map((value, i) => ({
+    start: i * stepsize.value,
+    value: value,
+  })),
+);
 
 const { load: loadPyodide, loading: loadingPyodide } = usePyodide();
 const loadingCode = ref(false);

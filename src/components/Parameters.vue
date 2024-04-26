@@ -118,18 +118,12 @@ watch(
 </script>
 
 <style scoped>
-table {
-  border: 0;
-  border-collapse: collapse;
-  padding: 0px;
-  margin: 0px;
-}
-
 th,
 td {
-  border: 0;
-  padding-left: 0px;
-  padding-right: 16px;
   text-align: left;
+}
+
+td:not(:last-child) {
+  padding-right: 16px;
 }
 </style>
