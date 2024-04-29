@@ -123,6 +123,7 @@ td {
   text-align: left;
 }
 
+th:not(:last-child),
 td:not(:last-child) {
   padding-right: 16px;
 }
