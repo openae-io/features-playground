@@ -85,11 +85,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import { watchDebounced } from "@vueuse/core";
+import { computed, ref, watch } from "vue";
+import { computedAsync, watchDebounced } from "@vueuse/core";
 import { range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "@/composables/usePyodide";
+import { useSignals } from "@/composables/useSignals";
 import Parameters from "@/components/Parameters.vue";
 import Plot from "@/components/Plot.vue";
 import { FunctionExecutor, FunctionSignature, InputDomain } from "@/FunctionExecutor";
@@ -100,34 +101,21 @@ const props = defineProps<{
   code: string;
 }>();
 
-interface Signal {
-  title: string;
-  data: number[];
-}
-
-const signals = ref<Signal[]>([]);
-const signalChoice = ref<Signal>({ title: "Empty", data: [] });
-onMounted(async () => {
-  const importList = import.meta.glob("../signals/*.json", { eager: false });
-  const importFuncs = Object.values(importList);
-  signals.value = await Promise.all(
-    importFuncs.map(async (importFunc: any) => (await importFunc()).default as Signal),
-  );
-  signalChoice.value = signals.value[0];
-});
-
-const signal = computed<Float32Array>(() => new Float32Array(signalChoice.value.data));
+const { signals } = useSignals();
+const signalChoice = ref(signals[0]);
+const signal = computedAsync(
+  async () => new Float32Array(await signalChoice.value.load()),
+  new Float32Array([]),
+);
 const samples = computed(() => signal.value.length);
 
 type Processing = "full" | "blockwise";
-
 const processingChoices = [
   { title: "Full signal", value: "full" },
   { title: "Block-wise", value: "blockwise" },
 ];
 const processing = ref<Processing>("blockwise");
 const blockwise = computed(() => processing.value === "blockwise");
-
 const blocksizeBlockwise = ref(256);
 const blocksize = computed(() => (blockwise.value ? blocksizeBlockwise.value : samples.value));
 const overlap = ref(50);
