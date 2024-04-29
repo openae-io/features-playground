@@ -85,15 +85,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { watchDebounced } from "@vueuse/core";
 import { range } from "lodash";
 import uPlot from "uplot";
-import { usePyodide } from "../composables/usePyodide";
-import Parameters from "./Parameters.vue";
-import Plot from "./Plot.vue";
+import { usePyodide } from "@/composables/usePyodide";
+import Parameters from "@/components/Parameters.vue";
+import Plot from "@/components/Plot.vue";
 import { FunctionExecutor, FunctionSignature, InputDomain } from "@/FunctionExecutor";
-import { watch } from "vue";
+import { highlightBlockPlugin } from "@/uPlotPlugins";
+import { blockIndexToCenter } from "@/utils";
 
 const props = defineProps<{
   code: string;
@@ -132,8 +133,6 @@ const blocksize = computed(() => (blockwise.value ? blocksizeBlockwise.value : s
 const overlap = ref(50);
 const stepsize = computed(() => blocksize.value * (1 - overlap.value / 100));
 
-const xvalues = computed<Int32Array>(() => new Int32Array(range(samples.value)));
-
 const blocks = computed<Float32Array[]>(() => {
   if (blocksize.value < 1 || stepsize.value < 1) return [];
   const arr = [];
@@ -147,21 +146,23 @@ const blocks = computed<Float32Array[]>(() => {
   return arr;
 });
 
-const xvaluesBlocks = computed<Int32Array>(() => {
-  const arr = new Int32Array(blocks.value.length);
-  for (let i = 0; i < arr.length; i++) {
-    arr[i] = 0.5 * blocksize.value + i * stepsize.value;
-  }
-  return arr;
-});
-
+const blockIndex = computed(() => range(0, blocks.value.length));
+const blockCenter = computed(() =>
+  blockIndex.value.map((i) => blockIndexToCenter(i, blocksize.value, stepsize.value)),
+);
 const feature = ref<number[]>([]);
 
 const colorSignal = "#2196F3";
 const colorFeature = "black";
-const plotOptions: uPlot.Options = {
+const plotOptions = computed<uPlot.Options>(() => ({
   width: 0,
   height: 400,
+  cursor: {
+    x: true,
+    y: false,
+    focus: { prox: 10 },
+  },
+  focus: { alpha: 1 },
   scales: {
     x: {
       time: false,
@@ -193,18 +194,23 @@ const plotOptions: uPlot.Options = {
   series: [
     {
       label: "Sample",
+      scale: "x",
     },
     {
-      show: true,
+      label: "Block",
+      scale: "x",
+    },
+    {
       label: "Signal",
+      show: true,
       scale: "y",
       stroke: colorSignal,
       width: 1,
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
     {
-      show: true,
       label: "Feature",
+      show: true,
       scale: "z",
       stroke: colorFeature,
       width: 1,
@@ -213,14 +219,16 @@ const plotOptions: uPlot.Options = {
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
   ],
-};
+  plugins: [highlightBlockPlugin({ blocksize: blocksize.value, stepsize: stepsize.value })],
+}));
 
 const tabOutput = ref(0);
 
 const plotData = computed<uPlot.AlignedData>(() => {
   return uPlot.join([
-    [xvalues.value, signal.value],
-    [xvaluesBlocks.value, feature.value],
+    [blockCenter.value, blockIndex.value],
+    [range(samples.value), signal.value],
+    [blockCenter.value, feature.value],
   ]);
 });
 
