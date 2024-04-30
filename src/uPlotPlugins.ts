@@ -1,5 +1,5 @@
 import uPlot from "uplot";
-import { isNil } from "lodash";
+import { isNil, isNumber } from "lodash";
 import { sampleToBlockCenter } from "@/utils";
 
 export interface BlockHighlightPluginOptions {
@@ -68,6 +68,37 @@ export function highlightBlockPlugin({
     hooks: {
       init: init,
       setCursor: setCursor,
+    },
+  };
+}
+
+interface ClickableDataPluginOptions {
+  onclick: (u: uPlot, idx: number) => void;
+}
+
+export function clickableDataPlugin({ onclick }: ClickableDataPluginOptions): uPlot.Plugin {
+  function init(u: uPlot) {
+    const el = u.over;
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Control") {
+        el.style.cursor = "pointer";
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "Control") {
+        el.style.cursor = "default";
+      }
+    });
+    el.addEventListener("click", (e) => {
+      if (e.ctrlKey && isNumber(u.cursor.idx)) {
+        onclick(u, u.cursor.idx);
+      }
+    });
+  }
+
+  return {
+    hooks: {
+      init: init,
     },
   };
 }

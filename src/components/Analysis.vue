@@ -94,7 +94,7 @@ import { useSignals } from "@/composables/useSignals";
 import Parameters from "@/components/Parameters.vue";
 import Plot from "@/components/Plot.vue";
 import { FunctionExecutor, FunctionSignature, InputDomain } from "@/FunctionExecutor";
-import { highlightBlockPlugin } from "@/uPlotPlugins";
+import { clickableDataPlugin, highlightBlockPlugin } from "@/uPlotPlugins";
 import { blockIndexToCenter } from "@/utils";
 
 const props = defineProps<{
@@ -207,7 +207,10 @@ const plotOptions = computed<uPlot.Options>(() => ({
       value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
     },
   ],
-  plugins: [highlightBlockPlugin({ blocksize: blocksize.value, stepsize: stepsize.value })],
+  plugins: [
+    highlightBlockPlugin({ blocksize: blocksize.value, stepsize: stepsize.value }),
+    clickableDataPlugin({ onclick: (u, idx) => console.log(u, idx) }),
+  ],
 }));
 
 const tabOutput = ref(0);
