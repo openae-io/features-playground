@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { computedAsync, watchDebounced } from "@vueuse/core";
-import { range } from "lodash";
+import { isNil, range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "@/composables/usePyodide";
 import { useSignals } from "@/composables/useSignals";
@@ -194,7 +194,7 @@ const plotOptions = computed<uPlot.Options>(() => ({
       scale: "y",
       stroke: colorSignal,
       width: 1,
-      value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
+      value: (u, value) => (isNil(value) ? "--" : value.toPrecision(4)),
     },
     {
       label: "Feature",
@@ -204,7 +204,7 @@ const plotOptions = computed<uPlot.Options>(() => ({
       width: 1,
       points: { show: true, size: 6 },
       spanGaps: true,
-      value: (u, value) => (value === null ? "--" : value.toPrecision(4)),
+      value: (u, value) => (isNil(value) ? "--" : value.toPrecision(4)),
     },
   ],
   plugins: [

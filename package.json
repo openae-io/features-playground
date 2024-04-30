@@ -13,7 +13,7 @@
     "all": "run-s --print-label build lint"
   },
   "dependencies": {
-    "@codemirror/lang-python": "^6.1.5",
+    "@codemirror/lang-python": "^6.1.6",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@mdi/font": "^7.4.47",
     "@vueuse/core": "^10.9.0",
@@ -22,9 +22,9 @@
     "roboto-fontface": "*",
     "splitpanes": "^3.1.5",
     "uplot": "^1.6.30",
-    "vue": "^3.4.25",
+    "vue": "^3.4.26",
     "vue-codemirror": "^6.1.1",
-    "vuetify": "^3.5.17"
+    "vuetify": "^3.6.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",
@@ -44,6 +44,6 @@
     "unplugin-fonts": "^1.1.1",
     "vite": "^5.2.10",
     "vite-plugin-vuetify": "^2.0.3",
-    "vue-tsc": "^2.0.14"
+    "vue-tsc": "^2.0.15"
   }
 }
