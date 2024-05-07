@@ -1,5 +1,5 @@
 import { PyodideInterface } from "pyodide";
-import type { PyCallable, PyDict } from "pyodide/ffi";
+import type { PyBuffer, PyCallable, PyDict, PyProxy } from "pyodide/ffi";
 import codeHelper from "@/helper.py?raw";
 
 // https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
@@ -43,8 +43,22 @@ export class PythonInterface {
     this.environment.runPython(code, { globals: this.namespace });
   }
 
+  protected getProxy(name: string): PyProxy {
+    return this.namespace.get(name);
+  }
+
+  protected isCallable(proxy: PyProxy) {
+    return proxy instanceof this.environment.ffi.PyCallable;
+  }
+
+  protected getCallable(name: string): PyCallable {
+    const proxy = this.getProxy(name);
+    if (!this.isCallable(proxy)) throw new Error(`Proxy ${name} is not a callable`);
+    return proxy as PyCallable;
+  }
+
   protected inspectFunctionSignature(callable: PyCallable): FunctionSignature {
-    const inspectParametersProxy = this.namespace.get("_inspect_parameters");
+    const inspectParametersProxy = this.getCallable("_inspect_parameters");
     const parameters = inspectParametersProxy(callable).toJs(); // type Array<Map<string, any>>
     return {
       name: callable.toJs()["__name__"],
@@ -57,22 +71,22 @@ export class PythonInterface {
     };
   }
 
-  protected asNumpyArray(arrayLike: any, dtype: string = "float32") {
-    const proxy = this.namespace.get("_asarray");
+  protected asNumpyArray(arrayLike: any, dtype: string = "float32"): PyBuffer {
+    const proxy = this.getCallable("_asarray");
     return proxy(arrayLike, dtype);
   }
 
-  applyWindow(signal: Float32Array | number[]) {
-    const proxy = this.namespace.get("_apply_window");
+  applyWindow(signal: Float32Array | number[]): PyBuffer {
+    const proxy = this.getCallable("_apply_window");
     return proxy(this.asNumpyArray(signal));
   }
 
-  computeSpectrum(signal: Float32Array | number[], applyWindow: boolean) {
-    const proxy = this.namespace.get("_compute_spectrum");
+  computeSpectrum(signal: Float32Array | number[], applyWindow: boolean): PyBuffer {
+    const proxy = this.getCallable("_compute_spectrum");
     return proxy(this.asNumpyArray(signal), applyWindow);
   }
 
-  transformSignal(signal: Float32Array | number[], options: TransformOptions) {
+  transformSignal(signal: Float32Array | number[], options: TransformOptions): PyBuffer {
     switch (options.domain) {
       case "signal":
         return this.asNumpyArray(signal);
@@ -89,18 +103,19 @@ export class FunctionExecutor extends PythonInterface {
   constructor(code: string, environment: PyodideInterface) {
     super(environment);
     this.code = code;
-    const getProxy = () => {
+    const getFunctionProxy = () => {
       this.runPython(this.code);
       for (const name of this.namespace) {
-        const proxy = this.namespace.get(name);
-        if (proxy instanceof this.environment.ffi.PyCallable && !name.startsWith("_")) {
-          return proxy;
+        if (name.startsWith("_")) continue;
+        const proxy = this.getProxy(name);
+        if (this.isCallable(proxy)) {
+          return proxy as PyCallable;
         }
         proxy.destroy();
       }
       throw new Error("No function defined");
     };
-    this.proxy = getProxy();
+    this.proxy = getFunctionProxy();
   }
 
   inspect(): FunctionSignature {
