@@ -71,9 +71,9 @@ export class PythonInterface {
     };
   }
 
-  protected asNumpyArray(arrayLike: any, dtype: string = "float32"): PyBuffer {
+  protected asNumpyArray(arrayLike: any): PyBuffer {
     const proxy = this.getCallable("_asarray");
-    return proxy(arrayLike, dtype);
+    return proxy(arrayLike);
   }
 
   applyWindow(signal: Float32Array | number[]): PyBuffer {
