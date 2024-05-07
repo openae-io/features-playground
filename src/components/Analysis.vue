@@ -111,19 +111,18 @@ import { computedAsync, watchDebounced } from "@vueuse/core";
 import { isNil, range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "@/composables/usePyodide";
-import { useSignals } from "@/composables/useSignals";
 import AnalysisBlock from "@/components//AnalysisBlock.vue";
 import Parameters from "@/components/Parameters.vue";
 import Plot from "@/components/Plot.vue";
 import { FunctionExecutor, FunctionSignature, InputDomain } from "@/python";
 import { clickableDataPlugin, highlightBlockPlugin } from "@/uPlotPlugins";
 import { blockIndexToCenter, sampleToBlockIndex } from "@/utils";
+import { signals } from "@/signals";
 
 const props = defineProps<{
   code: string;
 }>();
 
-const { signals } = useSignals();
 const signalChoice = ref(signals[0]);
 const signal = computedAsync(
   async () => new Float32Array(await signalChoice.value.load()),
