@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { watch } from "vue";
-import type { FunctionSignature, InputDomain } from "@/FunctionExecutor";
+import type { FunctionSignature, InputDomain } from "@/python";
 import { difference, isEmpty } from "lodash";
 
 type Parameters = Record<string, any>;

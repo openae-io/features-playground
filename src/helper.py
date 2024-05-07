@@ -1,12 +1,11 @@
-from inspect import Parameter, signature
+import inspect
 
 import numpy as np
-from numpy import asarray
 
 
-def inspect_parameters(func, empty_value="_empty"):
+def _inspect_parameters(func, empty_value="_empty"):
     def convert_empty(value):
-        return value if value is not Parameter.empty else empty_value
+        return value if value is not inspect.Parameter.empty else empty_value
 
     return [
         {
@@ -15,13 +14,17 @@ def inspect_parameters(func, empty_value="_empty"):
             "default": convert_empty(param.default),
             "annotation": param.annotation.__name__,
         }
-        for name, param in signature(func).parameters.items()
+        for name, param in inspect.signature(func).parameters.items()
     ]
 
 
-def transform_signal(signal: np.ndarray, domain: str, apply_window: bool):
-    if domain == "spectrum":
-        if apply_window:
-            signal *= np.hanning(len(signal))
-        return np.fft.rfft(signal)
-    return signal
+def _asarray(array_like, dtype=None) -> np.ndarray:
+    return np.asarray(array_like, dtype=dtype)
+
+
+def _apply_window(signal: np.ndarray):
+    return np.multiply(signal, np.hanning(len(signal)), dtype=signal.dtype)
+
+
+def _compute_spectrum(signal: np.ndarray, apply_window: bool):
+    return np.fft.rfft(_apply_window(signal) if apply_window else signal)

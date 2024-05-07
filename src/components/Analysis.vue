@@ -68,9 +68,12 @@
       />
     </v-form>
 
+    <v-divider />
+
     <v-tabs v-model="tabOutput" color="primary" mandatory>
       <v-tab>Plot</v-tab>
       <v-tab>Table</v-tab>
+      <v-tab>Blocks</v-tab>
     </v-tabs>
 
     <v-window v-model="tabOutput">
@@ -78,7 +81,25 @@
         <Plot :options="plotOptions" :data="plotData" />
       </v-window-item>
       <v-window-item>
-        <v-data-table :headers="tableHeaders" :items="tableData" density="compact" />
+        <v-data-table
+          :headers="tableHeaders"
+          :items="tableData"
+          items-per-page="-1"
+          density="compact"
+          height="400"
+        >
+          <template #item.actions="{ item }">
+            <v-btn icon="mdi-magnify" size="small" variant="text" @click="showBlock(item.block)" />
+          </template>
+        </v-data-table>
+      </v-window-item>
+      <v-window-item>
+        <AnalysisBlock
+          :blocks="blocks"
+          :features="features"
+          :index="blockIndexSelected"
+          :apply-window="applyWindow"
+        />
       </v-window-item>
     </v-window>
   </div>
@@ -91,11 +112,12 @@ import { isNil, range } from "lodash";
 import uPlot from "uplot";
 import { usePyodide } from "@/composables/usePyodide";
 import { useSignals } from "@/composables/useSignals";
+import AnalysisBlock from "@/components//AnalysisBlock.vue";
 import Parameters from "@/components/Parameters.vue";
 import Plot from "@/components/Plot.vue";
-import { FunctionExecutor, FunctionSignature, InputDomain } from "@/FunctionExecutor";
+import { FunctionExecutor, FunctionSignature, InputDomain } from "@/python";
 import { clickableDataPlugin, highlightBlockPlugin } from "@/uPlotPlugins";
-import { blockIndexToCenter } from "@/utils";
+import { blockIndexToCenter, sampleToBlockIndex } from "@/utils";
 
 const props = defineProps<{
   code: string;
@@ -138,7 +160,19 @@ const blockIndex = computed(() => range(0, blocks.value.length));
 const blockCenter = computed(() =>
   blockIndex.value.map((i) => blockIndexToCenter(i, blocksize.value, stepsize.value)),
 );
-const feature = ref<number[]>([]);
+const features = ref<number[]>([]);
+
+const tabOutput = ref(0);
+const blockIndexSelected = ref(0);
+
+function showBlock(index: number) {
+  blockIndexSelected.value = index;
+  tabOutput.value = 2; // blocks tab
+}
+
+function makeValueFormatter(precision: number): uPlot.Series.Value {
+  return (u, value) => (isNil(value) ? "--" : value.toPrecision(precision));
+}
 
 const colorSignal = "#2196F3";
 const colorFeature = "black";
@@ -148,9 +182,7 @@ const plotOptions = computed<uPlot.Options>(() => ({
   cursor: {
     x: true,
     y: false,
-    focus: { prox: 10 },
   },
-  focus: { alpha: 1 },
   scales: {
     x: {
       time: false,
@@ -194,7 +226,7 @@ const plotOptions = computed<uPlot.Options>(() => ({
       scale: "y",
       stroke: colorSignal,
       width: 1,
-      value: (u, value) => (isNil(value) ? "--" : value.toPrecision(4)),
+      value: makeValueFormatter(5),
     },
     {
       label: "Feature",
@@ -204,31 +236,36 @@ const plotOptions = computed<uPlot.Options>(() => ({
       width: 1,
       points: { show: true, size: 6 },
       spanGaps: true,
-      value: (u, value) => (isNil(value) ? "--" : value.toPrecision(4)),
+      value: makeValueFormatter(5),
     },
   ],
   plugins: [
     highlightBlockPlugin({ blocksize: blocksize.value, stepsize: stepsize.value }),
-    clickableDataPlugin({ onclick: (u, idx) => console.log(u, idx) }),
+    clickableDataPlugin({
+      onclick: (u, idx) => {
+        showBlock(sampleToBlockIndex(idx, blocksize.value, stepsize.value));
+      },
+    }),
   ],
 }));
-
-const tabOutput = ref(0);
 
 const plotData = computed<uPlot.AlignedData>(() => {
   return uPlot.join([
     [blockCenter.value, blockIndex.value],
     [range(samples.value), signal.value],
-    [blockCenter.value, feature.value],
+    [blockCenter.value, features.value],
   ]);
 });
 
 const tableHeaders = [
+  { key: "block", title: "Block" },
   { key: "start", title: "Sample start" },
   { key: "value", title: "Feature value" },
+  { key: "actions", title: "Actions" },
 ];
 const tableData = computed(() =>
-  feature.value.map((value, i) => ({
+  features.value.map((value, i) => ({
+    block: i,
     start: i * stepsize.value,
     value: value,
   })),
@@ -269,7 +306,7 @@ async function compute() {
   computing.value = true;
   error.value = null;
   try {
-    feature.value = blocks.value.map((block) => {
+    features.value = blocks.value.map((block) => {
       return executor.value!.invoke(
         block,
         {
@@ -290,7 +327,7 @@ const watchItems = [executor, inputDomain, applyWindow, parameters, signal, bloc
 watch(
   watchItems,
   () => {
-    feature.value = [];
+    features.value = [];
   },
   { deep: true },
 );
