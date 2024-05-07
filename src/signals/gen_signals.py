@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from scipy.signal import chirp
+from scipy.signal import chirp, square
 
 HERE = Path(__file__).parent
 
@@ -30,6 +30,14 @@ def gen_sine():
     return Signal(title="Sine with 1/100 sampling rate", data=y)
 
 
+def gen_square():
+    N = 10000
+    t = np.arange(N)
+    f = 0.01
+    y = square(2 * np.pi * f * t)
+    return Signal(title="Square wave with 1/100 sampling rate", data=y)
+
+
 def gen_chirp():
     N = 10000
     t = np.arange(N)
@@ -45,5 +53,6 @@ def gen_noise():
 
 
 save_signal_to_file(gen_sine(), "10_sine.json")
-save_signal_to_file(gen_chirp(), "11_chirp.json")
-save_signal_to_file(gen_noise(), "12_white_noise.json")
+save_signal_to_file(gen_square(), "11_square.json")
+save_signal_to_file(gen_chirp(), "20_chirp.json")
+save_signal_to_file(gen_noise(), "30_white_noise.json")
