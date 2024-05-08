@@ -34,8 +34,10 @@
           <template v-else>
             <v-text-field
               :model-value="parameters[param.name]"
-              :disabled="index == 0"
               :type="getInputType(param.annotation)"
+              :error="isNil(parameters[param.name])"
+              :append-inner-icon="isNil(parameters[param.name]) ? 'mdi-alert' : ''"
+              placeholder="Please enter a value"
               density="compact"
               hide-details
               @update:model-value="(value: string) => updateParameter(param.name, value)"
@@ -50,7 +52,7 @@
 <script setup lang="ts">
 import { watch } from "vue";
 import type { FunctionSignature, InputDomain } from "@/python";
-import { difference, isEmpty } from "lodash";
+import { difference, isEmpty, isNil } from "lodash";
 
 type Parameters = Record<string, any>;
 
