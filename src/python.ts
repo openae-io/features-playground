@@ -71,25 +71,25 @@ export class PythonInterface {
     };
   }
 
-  protected asNumpyArray(arrayLike: any): PyBuffer {
+  protected asNumpyArray(arrayLike: any, dtype: string | null = null): PyBuffer {
     const proxy = this.getCallable("_asarray");
-    return proxy(arrayLike);
+    return proxy(arrayLike, dtype);
   }
 
   applyWindow(signal: Float32Array | number[]): PyBuffer {
     const proxy = this.getCallable("_apply_window");
-    return proxy(this.asNumpyArray(signal));
+    return proxy(this.asNumpyArray(signal, "float64"));
   }
 
   computeSpectrum(signal: Float32Array | number[], applyWindow: boolean): PyBuffer {
     const proxy = this.getCallable("_compute_spectrum");
-    return proxy(this.asNumpyArray(signal), applyWindow);
+    return proxy(this.asNumpyArray(signal, "float64"), applyWindow);
   }
 
   transformSignal(signal: Float32Array | number[], options: TransformOptions): PyBuffer {
     switch (options.domain) {
       case "signal":
-        return this.asNumpyArray(signal);
+        return this.asNumpyArray(signal, "float64");
       case "spectrum":
         return this.computeSpectrum(signal, options.applyWindow);
     }
