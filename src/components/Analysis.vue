@@ -124,10 +124,7 @@ const props = defineProps<{
 }>();
 
 const signalChoice = ref(signals[0]);
-const signal = computedAsync(
-  async () => new Float32Array(await signalChoice.value.load()),
-  new Float32Array([]),
-);
+const signal = computedAsync(() => signalChoice.value.load(), new Float32Array([]));
 const samples = computed(() => signal.value.length);
 
 type Processing = "full" | "blockwise";
