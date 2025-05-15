@@ -13,7 +13,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { range } from "lodash";
-import { VNumberInput } from "vuetify/labs/VNumberInput";
 import { usePyodide } from "@/composables/usePyodide";
 import Plot from "@/components/Plot.vue";
 import { PythonInterface } from "@/python";
